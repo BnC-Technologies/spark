@@ -165,8 +165,14 @@ object SparkEnv extends Logging {
       s"${DRIVER_HOST_ADDRESS.key} is not set on the driver!")
     assert(conf.contains("spark.driver.port"), "spark.driver.port is not set on the driver!")
     val bindAddress = conf.get(DRIVER_BIND_ADDRESS)
-    val advertiseAddress = conf.get(DRIVER_HOST_ADDRESS)
-    val port = conf.get("spark.driver.port").toInt
+    val advertiseAddress = {
+      val envVar = conf.getenv("SPARK_PUBLIC_DNS")
+      if (envVar != null) envVar else conf.get(DRIVER_HOST_ADDRESS)
+    }
+    val port = {
+      val envVar = conf.getenv("SPARK_DRIVER_PORT")
+      if (envVar != null) envVar else conf.get("spark.driver.port")
+    }.toInt
     val ioEncryptionKey = if (conf.get(IO_ENCRYPTION_ENABLED)) {
       Some(CryptoStreamUtils.createKey(conf))
     } else {
@@ -194,6 +200,7 @@ object SparkEnv extends Logging {
       conf: SparkConf,
       executorId: String,
       hostname: String,
+      advertiseAddress: String,
       port: Int,
       numCores: Int,
       ioEncryptionKey: Option[Array[Byte]],
@@ -202,7 +209,7 @@ object SparkEnv extends Logging {
       conf,
       executorId,
       hostname,
-      hostname,
+      advertiseAddress,
       port,
       isLocal,
       numCores,
@@ -333,9 +340,11 @@ object SparkEnv extends Logging {
       }
 
     val blockManagerPort = if (isDriver) {
-      conf.get(DRIVER_BLOCK_MANAGER_PORT)
+        val envVar = conf.getenv("SPARK_DRIVER_BLOCKMANAGER_PORT")
+        if (envVar != null) envVar.toInt else conf.get(DRIVER_BLOCK_MANAGER_PORT)
     } else {
-      conf.get(BLOCK_MANAGER_PORT)
+      val envVar = conf.getenv("SPARK_BLOCKMANAGER_PORT")
+      if (envVar != null) envVar.toInt else conf.get(BLOCK_MANAGER_PORT)
     }
 
     val blockTransferService =

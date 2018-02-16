@@ -92,7 +92,7 @@ private[spark] abstract class RestSubmissionServer(
       -1,
       -1,
       new HttpConnectionFactory())
-    connector.setHost(host)
+    connector.setHost(Utils.localHostName())
     connector.setPort(startPort)
     server.addConnector(connector)
 

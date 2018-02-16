@@ -755,11 +755,14 @@ private[deploy] object Worker extends Logging {
       workDir: String,
       workerNumber: Option[Int] = None,
       conf: SparkConf = new SparkConf): RpcEnv = {
-
+    val publicAddress = {
+      val envVar = conf.getenv("SPARK_PUBLIC_DNS")
+      if (envVar != null) envVar else host
+    }
     // The LocalSparkCluster runs multiple local sparkWorkerX RPC Environments
     val systemName = SYSTEM_NAME + workerNumber.map(_.toString).getOrElse("")
     val securityMgr = new SecurityManager(conf)
-    val rpcEnv = RpcEnv.create(systemName, host, port, conf, securityMgr)
+    val rpcEnv = RpcEnv.create(systemName, host, publicAddress, port, conf, securityMgr, false)
     val masterAddresses = masterUrls.map(RpcAddress.fromSparkURL(_))
     rpcEnv.setupEndpoint(ENDPOINT_NAME, new Worker(rpcEnv, webUiPort, cores, memory,
       masterAddresses, ENDPOINT_NAME, workDir, conf, securityMgr))

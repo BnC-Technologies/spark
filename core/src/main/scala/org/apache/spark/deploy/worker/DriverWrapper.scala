@@ -38,8 +38,15 @@ object DriverWrapper {
        */
       case workerUrl :: userJar :: mainClass :: extraArgs =>
         val conf = new SparkConf()
-        val rpcEnv = RpcEnv.create("Driver",
-          Utils.localHostName(), 0, conf, new SecurityManager(conf))
+        val host = Utils.localHostName()
+        val publicAddress = {
+          val envVar = conf.getenv("SPARK_PUBLIC_DNS")
+          if (envVar != null) envVar else host
+        }
+        val port = conf.getInt("spark.driver.port", 0)
+        val securityManager = new SecurityManager(conf)
+        val driver = "Driver"
+        val rpcEnv = RpcEnv.create(driver, host, publicAddress, port, conf, securityManager, false)
         rpcEnv.setupEndpoint("workerWatcher", new WorkerWatcher(rpcEnv, workerUrl))
 
         val currentLoader = Thread.currentThread.getContextClassLoader

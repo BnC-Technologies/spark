@@ -2186,7 +2186,7 @@ private[spark] object Utils extends Logging {
       // Set a higher number of retries for tests...
       maxRetries.getOrElse(100)
     } else {
-      maxRetries.getOrElse(16)
+      maxRetries.getOrElse(999)
     }
   }
 

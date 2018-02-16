@@ -65,12 +65,16 @@ private[spark] class StandaloneSchedulerBackend(
     if (sc.deployMode == "client") {
       launcherBackend.connect()
     }
-
+    val publicAddress = {
+      val envVar = conf.getenv("SPARK_PUBLIC_DNS")
+      if (envVar != null) envVar else sc.conf.get("spark.driver.host")
+    }
     // The endpoint for executors to talk to us
     val driverUrl = RpcEndpointAddress(
-      sc.conf.get("spark.driver.host"),
+      publicAddress,
       sc.conf.get("spark.driver.port").toInt,
       CoarseGrainedSchedulerBackend.ENDPOINT_NAME).toString
+
     val args = Seq(
       "--driver-url", driverUrl,
       "--executor-id", "{{EXECUTOR_ID}}",
